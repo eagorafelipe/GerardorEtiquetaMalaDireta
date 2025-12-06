@@ -23,7 +23,7 @@ data class Registro(
             linhas.add(truncar(enderecoCondominio, 45))
         }
 
-        if(bairroCondominio.isNotBlank()){
+        if (bairroCondominio.isNotBlank()) {
             linhas.add(truncar(bairroCondominio, 30))
         }
 

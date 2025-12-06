@@ -58,7 +58,7 @@ class PlanilhaReader {
             while (csvReader.readNext().also { linha = it } != null) {
                 val campos = linha!!
 
-                if (campos.size < 5) continue
+                if (campos.size < 6) continue
 
                 val nomeSindico = campos[0].trim()
                 val nomeCondominio = campos[1].trim()
