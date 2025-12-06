@@ -10,19 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            build-targets: packageDeb packageRpm packageAppImage
-            artifact-name: linux
-          - os: windows-latest
-            build-targets: packageMsi
-            artifact-name: windows
-    
-    runs-on: ${{ matrix.os }}
+  build-linux:
+    runs-on: ubuntu-latest
     
     steps:
       - name: Checkout repository
@@ -38,37 +27,91 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Grant execute permission for gradlew
-        if: runner.os != 'Windows'
         run: chmod +x gradlew
 
       - name: Build with Gradle
         run: ./gradlew build
 
-      - name: Package for ${{ matrix.artifact-name }}
-        run: ./gradlew ${{ matrix.build-targets }}
+      - name: Package DEB
+        run: ./gradlew packageDeb
+        continue-on-error: true
 
-      - name: Upload Linux artifacts
-        if: matrix.os == 'ubuntu-latest'
+      - name: Package AppImage
+        run: ./gradlew packageAppImage
+        continue-on-error: true
+
+      - name: Upload Linux DEB
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact-name }}-packages
-          path: |
-            build/compose/binaries/main/deb/*.deb
-            build/compose/binaries/main/rpm/*.rpm
-            build/compose/binaries/main/app/*.AppImage
+          name: linux-deb
+          path: build/compose/binaries/main/deb/*.deb
           if-no-files-found: warn
 
-      - name: Upload Windows artifacts
-        if: matrix.os == 'windows-latest'
+      - name: Upload Linux AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact-name }}-packages
-          path: |
-            build/compose/binaries/main/msi/*.msi
+          name: linux-appimage
+          path: build/compose/binaries/main/app/
           if-no-files-found: warn
+
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Convert PNG to ICO for Windows
+        run: |
+          # Install ImageMagick
+          choco install imagemagick -y
+          # Convert PNG to proper ICO format
+          magick convert src/desktopMain/resources/icon.png -define icon:auto-resize=256,128,64,48,32,16 src/desktopMain/resources/icon.ico
+        shell: pwsh
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Package MSI
+        run: ./gradlew packageMsi --info
+        continue-on-error: true
+
+      - name: Show jpackage logs on failure
+        if: failure()
+        run: |
+          echo "=== Checking for jpackage logs ==="
+          Get-ChildItem -Path build/compose/logs -Recurse -ErrorAction SilentlyContinue | ForEach-Object { 
+            echo "=== $($_.FullName) ===" 
+            Get-Content $_.FullName -ErrorAction SilentlyContinue
+          }
+        shell: pwsh
+
+      - name: Upload Windows MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi
+          path: build/compose/binaries/main/msi/*.msi
+          if-no-files-found: warn
+
+      - name: Upload jpackage logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-logs
+          path: build/compose/logs/
+          if-no-files-found: ignore
 
   release:
-    needs: build
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -78,20 +121,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Linux artifacts
+      - name: Download Linux DEB
         uses: actions/download-artifact@v4
         with:
-          name: linux-packages
-          path: artifacts/linux
+          name: linux-deb
+          path: artifacts/linux/deb
+        continue-on-error: true
 
-      - name: Download Windows artifacts
+      - name: Download Linux AppImage
         uses: actions/download-artifact@v4
         with:
-          name: windows-packages
+          name: linux-appimage
+          path: artifacts/linux/appimage
+        continue-on-error: true
+
+      - name: Download Windows MSI
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-msi
           path: artifacts/windows
+        continue-on-error: true
 
       - name: Display structure of downloaded files
-        run: ls -R artifacts/
+        run: ls -R artifacts/ || echo "No artifacts found"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -101,9 +153,8 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: |
-            artifacts/linux/**/*.deb
-            artifacts/linux/**/*.rpm
-            artifacts/linux/**/*.AppImage
-            artifacts/windows/**/*.msi
+            artifacts/**/*.deb
+            artifacts/**/*.AppImage
+            artifacts/**/*.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

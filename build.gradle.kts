@@ -60,29 +60,42 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage)
 
-            packageName = "GeradorEtiquetasMalaDireta"
+            packageName = "GeradorEtiquetas"
             packageVersion = "1.0.0"
             description = "Gerador de Etiquetas Pimaco para Mala Direta"
-            vendor = "Etiqueta MalaDireta"
+            vendor = "EtiquetaMalaDireta"
+            copyright = "2024 EtiquetaMalaDireta"
 
             linux {
-                iconFile.set(project.file("src/desktopMain/resources/icon.png"))
+                val linuxIcon = project.file("src/desktopMain/resources/icon.png")
+                if (linuxIcon.exists()) {
+                    iconFile.set(linuxIcon)
+                }
                 debMaintainer = "eagorafelipe@gmail.com"
                 menuGroup = "Office"
                 appRelease = "1"
                 appCategory = "Office"
+                shortcut = true
             }
 
             windows {
-                iconFile.set(project.file("src/desktopMain/resources/icon.ico"))
-                menuGroup = "Etiqueta MalaDireta"
+                val windowsIcon = project.file("src/desktopMain/resources/icon.ico")
+                if (windowsIcon.exists()) {
+                    iconFile.set(windowsIcon)
+                }
+                menuGroup = "EtiquetaMalaDireta"
                 upgradeUuid = "8e7c9f3a-5b2d-4e1a-9f8c-7d6b5a4e3c2b"
                 perUserInstall = true
                 dirChooser = true
+                shortcut = true
+                menu = true
             }
 
             macOS {
-                iconFile.set(project.file("src/desktopMain/resources/icon.icns"))
+                val macIcon = project.file("src/desktopMain/resources/icon.icns")
+                if (macIcon.exists()) {
+                    iconFile.set(macIcon)
+                }
                 bundleID = "br.com.etiqueta.maladireta"
             }
         }
