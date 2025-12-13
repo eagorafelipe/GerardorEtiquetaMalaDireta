@@ -61,7 +61,7 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage)
 
             packageName = "GeradorEtiquetas"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
             description = "Gerador de Etiquetas Pimaco para Mala Direta"
             vendor = "EtiquetaMalaDireta"
             copyright = "2024 EtiquetaMalaDireta"

@@ -2,7 +2,9 @@ package br.com.etiqueta.maladireta.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,9 +15,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.etiqueta.maladireta.models.ModeloEtiqueta
+import br.com.etiqueta.maladireta.models.formatarComTemplate
 import br.com.etiqueta.maladireta.services.PDFGenerator
 import br.com.etiqueta.maladireta.services.PlanilhaReader
-import br.com.etiqueta.maladireta.ui.components.AppCard
+import br.com.etiqueta.maladireta.ui.components.*
 import br.com.etiqueta.maladireta.viewmodel.AppState
 import br.com.etiqueta.maladireta.viewmodel.MainViewModel
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +35,7 @@ fun MainScreen(viewModel: MainViewModel) {
     val scope = rememberCoroutineScope()
     val planilhaReader = remember { PlanilhaReader() }
     val pdfGenerator = remember { PDFGenerator() }
+    val scrollState = rememberScrollState()
 
     var showModeloDropdown by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
@@ -42,7 +46,8 @@ fun MainScreen(viewModel: MainViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(30.dp),
+            .padding(30.dp)
+            .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         // Cabeçalho
@@ -110,6 +115,16 @@ fun MainScreen(viewModel: MainViewModel) {
 
             // Informações do modelo
             ModeloInfoSection(viewModel.selectedModelo)
+        }
+
+        // Card - Seleção de Template (NOVO)
+        AppCard(modifier = Modifier.fillMaxWidth()) {
+            TemplateSelectorSection(
+                templates = viewModel.templatesDisponiveis,
+                selectedTemplate = viewModel.selectedTemplate,
+                sampleRegistro = viewModel.registros.firstOrNull(),
+                onSelectTemplate = { viewModel.selectTemplate(it) }
+            )
         }
 
         // Card - Seleção de Arquivo
@@ -190,6 +205,23 @@ fun MainScreen(viewModel: MainViewModel) {
             }
         }
 
+        // Card - Filtros por Cidade (NOVO)
+        if (viewModel.registros.isNotEmpty()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                FiltrosCidadeSection(
+                    cidadesDisponiveis = viewModel.cidadesDisponiveis,
+                    cidadesSelecionadas = viewModel.cidadesSelecionadas,
+                    filtroAtivo = viewModel.filtroAtivo,
+                    totalRegistros = viewModel.registros.size,
+                    registrosFiltrados = viewModel.registrosFiltrados.size,
+                    onToggleCidade = { viewModel.toggleCidade(it) },
+                    onSelecionarTodas = { viewModel.selecionarTodasCidades() },
+                    onLimparSelecao = { viewModel.limparSelecaoCidades() },
+                    onToggleFiltro = { viewModel.atualizarFiltroAtivo(it) }
+                )
+            }
+        }
+
         // Card - Geração
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -199,10 +231,72 @@ fun MainScreen(viewModel: MainViewModel) {
                 color = MaterialTheme.colorScheme.onSurface
             )
 
+            // Info sobre registros que serão gerados
+            if (viewModel.registros.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.tertiaryContainer,
+                            RoundedCornerShape(6.dp)
+                        )
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "Registros a gerar:",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = "${viewModel.registrosFiltrados.size}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Páginas estimadas:",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = "${viewModel.maxPreviewPages}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Template:",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = viewModel.selectedTemplate.nome,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                }
+            }
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // Botão Preview (NOVO)
+                OutlinedButton(
+                    onClick = { viewModel.togglePreview() },
+                    enabled = viewModel.registrosFiltrados.isNotEmpty()
+                ) {
+                    Text("👁️ Preview")
+                }
+
                 Button(
                     onClick = {
                         val fileDialog = FileDialog(null as Frame?, "Salvar PDF", FileDialog.SAVE)
@@ -215,9 +309,10 @@ fun MainScreen(viewModel: MainViewModel) {
 
                             scope.launch(Dispatchers.IO) {
                                 try {
-                                    pdfGenerator.gerarPDF(
-                                        viewModel.registros,
+                                    pdfGenerator.gerarPDFComTemplate(
+                                        viewModel.registrosFiltrados,
                                         viewModel.selectedModelo,
+                                        viewModel.selectedTemplate,
                                         File(outputPath)
                                     ) { atual, total ->
                                         scope.launch(Dispatchers.Main) {
@@ -227,7 +322,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
                                     withContext(Dispatchers.Main) {
                                         viewModel.setSuccess("PDF gerado com sucesso!")
-                                        dialogMessage = "PDF gerado com sucesso em:\n$outputPath"
+                                        dialogMessage = "PDF gerado com sucesso em:\n$outputPath\n\n${viewModel.registrosFiltrados.size} etiquetas geradas."
                                         showSuccessDialog = true
                                     }
                                 } catch (e: Exception) {
@@ -240,7 +335,7 @@ fun MainScreen(viewModel: MainViewModel) {
                             }
                         }
                     },
-                    enabled = viewModel.registros.isNotEmpty() && viewModel.appState !is AppState.Loading && viewModel.appState !is AppState.Progress,
+                    enabled = viewModel.registrosFiltrados.isNotEmpty() && viewModel.appState !is AppState.Loading && viewModel.appState !is AppState.Progress,
                     modifier = Modifier.width(150.dp)
                 ) {
                     Text("Gerar PDF")
@@ -298,12 +393,25 @@ fun MainScreen(viewModel: MainViewModel) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "💡 Dica: Use filtros no Excel antes de salvar a planilha para gerar etiquetas de cidades específicas",
+                text = "💡 Dica: Use os filtros por cidade para gerar etiquetas apenas das cidades desejadas",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.secondary,
                 fontStyle = FontStyle.Italic
             )
         }
+    }
+
+    // Diálogo de Preview (NOVO)
+    if (viewModel.showPreview) {
+        EtiquetaPreviewDialog(
+            registros = viewModel.registrosFiltrados,
+            modelo = viewModel.selectedModelo,
+            template = viewModel.selectedTemplate,
+            currentPage = viewModel.previewPageIndex,
+            totalPages = viewModel.maxPreviewPages,
+            onPageChange = { viewModel.setPreviewPage(it) },
+            onDismiss = { viewModel.togglePreview() }
+        )
     }
 
     // Diálogos

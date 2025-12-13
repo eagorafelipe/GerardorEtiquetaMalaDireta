@@ -1,7 +1,9 @@
 package br.com.etiqueta.maladireta.services
 
+import br.com.etiqueta.maladireta.models.EtiquetaTemplate
 import br.com.etiqueta.maladireta.models.ModeloEtiqueta
 import br.com.etiqueta.maladireta.models.Registro
+import br.com.etiqueta.maladireta.models.formatarComTemplate
 import com.itextpdf.kernel.geom.PageSize
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfWriter
@@ -16,9 +18,25 @@ import java.io.File
 
 class PDFGenerator {
 
+    /**
+     * Gera PDF usando o template padrão (compatibilidade com código antigo)
+     */
     fun gerarPDF(
         registros: List<Registro>,
         modelo: ModeloEtiqueta,
+        arquivoSaida: File,
+        onProgress: (Int, Int) -> Unit = { _, _ -> }
+    ) {
+        gerarPDFComTemplate(registros, modelo, EtiquetaTemplate.DEFAULT, arquivoSaida, onProgress)
+    }
+
+    /**
+     * Gera PDF usando um template customizado
+     */
+    fun gerarPDFComTemplate(
+        registros: List<Registro>,
+        modelo: ModeloEtiqueta,
+        template: EtiquetaTemplate,
         arquivoSaida: File,
         onProgress: (Int, Int) -> Unit = { _, _ -> }
     ) {
@@ -55,7 +73,7 @@ class PDFGenerator {
                     val indice = pagina * modelo.etiquetasPorPagina + linha * modelo.colunas + coluna
 
                     val celula = if (indice < registros.size) {
-                        criarCelula(registros[indice], modelo)
+                        criarCelulaComTemplate(registros[indice], modelo, template)
                     } else {
                         criarCelulaVazia(modelo)
                     }
@@ -70,6 +88,25 @@ class PDFGenerator {
         }
 
         document.close()
+    }
+
+    private fun criarCelulaComTemplate(registro: Registro, modelo: ModeloEtiqueta, template: EtiquetaTemplate): Cell {
+        val celula = Cell()
+        celula.setWidth(mmParaPontos(modelo.larguraMM).toFloat())
+        celula.setHeight(mmParaPontos(modelo.alturaMM).toFloat())
+        celula.setPadding(mmParaPontos(template.paddingInterno.toDouble()).toFloat())
+        celula.setBorder(null)
+        celula.setVerticalAlignment(VerticalAlignment.TOP)
+
+        val paragrafo = Paragraph(registro.formatarComTemplate(template))
+        paragrafo.setFontSize(template.tamanhoFonte)
+        paragrafo.setTextAlignment(TextAlignment.LEFT)
+        paragrafo.setMultipliedLeading(template.entrelinhas)
+        paragrafo.setMargin(0.95f)
+
+        celula.add(paragrafo)
+
+        return celula
     }
 
     private fun criarCelula(registro: Registro, modelo: ModeloEtiqueta): Cell {
