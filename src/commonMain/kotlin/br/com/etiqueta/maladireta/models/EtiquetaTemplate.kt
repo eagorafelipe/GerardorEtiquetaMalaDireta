@@ -73,10 +73,10 @@ data class EtiquetaTemplate(
             descricao = "Condomínio em destaque, ideal para correspondências institucionais",
             campos = listOf(
                 CampoTemplate(TipoCampo.CONDOMINIO, "", 45, true),
-                CampoTemplate(TipoCampo.SINDICO, "Síndico(a): ", 40, true),
                 CampoTemplate(TipoCampo.ENDERECO, "", 45, true),
                 CampoTemplate(TipoCampo.BAIRRO, "", 30, true),
-                CampoTemplate(TipoCampo.CIDADE_CEP, "", 50, true)
+                CampoTemplate(TipoCampo.CIDADE_CEP, "", 50, true),
+                CampoTemplate(TipoCampo.SINDICO, "Síndico(a): ", 40, true),
             )
         )
 
@@ -117,11 +117,41 @@ fun Registro.formatarComTemplate(template: EtiquetaTemplate): String {
         if (!campo.exibir) continue
 
         val valor = when (campo.tipo) {
-            TipoCampo.SINDICO -> if (nomeSindico.isNotBlank()) "${campo.prefixo}${truncar(nomeSindico, campo.limiteCaracteres)}" else null
-            TipoCampo.CONDOMINIO -> if (nomeCondominio.isNotBlank()) "${campo.prefixo}${truncar(nomeCondominio, campo.limiteCaracteres)}" else null
-            TipoCampo.ENDERECO -> if (enderecoCondominio.isNotBlank()) "${campo.prefixo}${truncar(enderecoCondominio, campo.limiteCaracteres)}" else null
-            TipoCampo.BAIRRO -> if (bairroCondominio.isNotBlank()) "${campo.prefixo}${truncar(bairroCondominio, campo.limiteCaracteres)}" else null
-            TipoCampo.CIDADE -> if (cidadeCondominio.isNotBlank()) "${campo.prefixo}${truncar(cidadeCondominio, campo.limiteCaracteres)}" else null
+            TipoCampo.SINDICO -> if (nomeSindico.isNotBlank()) "${campo.prefixo}${
+                truncar(
+                    nomeSindico,
+                    campo.limiteCaracteres
+                )
+            }" else null
+
+            TipoCampo.CONDOMINIO -> if (nomeCondominio.isNotBlank()) "${campo.prefixo}${
+                truncar(
+                    nomeCondominio,
+                    campo.limiteCaracteres
+                )
+            }" else null
+
+            TipoCampo.ENDERECO -> if (enderecoCondominio.isNotBlank()) "${campo.prefixo}${
+                truncar(
+                    enderecoCondominio,
+                    campo.limiteCaracteres
+                )
+            }" else null
+
+            TipoCampo.BAIRRO -> if (bairroCondominio.isNotBlank()) "${campo.prefixo}${
+                truncar(
+                    bairroCondominio,
+                    campo.limiteCaracteres
+                )
+            }" else null
+
+            TipoCampo.CIDADE -> if (cidadeCondominio.isNotBlank()) "${campo.prefixo}${
+                truncar(
+                    cidadeCondominio,
+                    campo.limiteCaracteres
+                )
+            }" else null
+
             TipoCampo.CEP -> if (cepCondominio.isNotBlank()) "${campo.prefixo}CEP: $cepCondominio" else null
             TipoCampo.CIDADE_CEP -> {
                 val partes = mutableListOf<String>()
