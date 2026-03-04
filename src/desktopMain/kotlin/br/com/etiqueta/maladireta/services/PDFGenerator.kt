@@ -4,7 +4,6 @@ import br.com.etiqueta.maladireta.models.EtiquetaTemplate
 import br.com.etiqueta.maladireta.models.ModeloEtiqueta
 import br.com.etiqueta.maladireta.models.Registro
 import br.com.etiqueta.maladireta.models.formatarComTemplate
-import com.itextpdf.kernel.geom.PageSize
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfWriter
 import com.itextpdf.layout.Document
@@ -42,7 +41,7 @@ class PDFGenerator {
     ) {
         val writer = PdfWriter(arquivoSaida)
         val pdfDoc = PdfDocument(writer)
-        val document = Document(pdfDoc, PageSize.A4)
+        val document = Document(pdfDoc, modelo.pageSize)
 
         // Configurar margens do documento
         document.setMargins(
@@ -55,17 +54,24 @@ class PDFGenerator {
         val totalPaginas = kotlin.math.ceil(registros.size.toDouble() / modelo.etiquetasPorPagina).toInt()
         var paginaAtual = 0
 
+        val espacoPontos = mmParaPontos(modelo.espacamentoHorizontalMM).toFloat()
+        val larguraCelulaPontos = mmParaPontos(modelo.larguraMM).toFloat()
+
         for (pagina in 0 until totalPaginas) {
             if (pagina > 0) {
                 document.add(com.itextpdf.layout.element.AreaBreak())
             }
 
-            // Criar tabela para esta página
-            val largurasColunas = FloatArray(modelo.colunas) {
-                mmParaPontos(modelo.larguraMM).toFloat()
+            // Criar tabela para esta página: 3 colunas de conteúdo + 2 espaçadores entre elas
+            val larguras = mutableListOf<Float>()
+            for (col in 0 until modelo.colunas) {
+                if (col > 0) {
+                    larguras.add(espacoPontos)
+                }
+                larguras.add(larguraCelulaPontos)
             }
-            val tabela = Table(largurasColunas)
-            tabela.setHorizontalAlignment(HorizontalAlignment.CENTER)
+            val tabela = Table(larguras.toFloatArray())
+            tabela.setHorizontalAlignment(HorizontalAlignment.LEFT)
 
             // Preencher tabela
             for (linha in 0 until modelo.linhas) {
@@ -75,10 +81,20 @@ class PDFGenerator {
                     val celula = if (indice < registros.size) {
                         criarCelulaComTemplate(registros[indice], modelo, template)
                     } else {
-                        criarCelulaVazia(modelo)
+                        criarCelulaVazia(modelo, espacoPontos)
                     }
 
                     tabela.addCell(celula)
+
+                    // Adiciona célula espaçadora entre as colunas (exceto após a última)
+                    if (coluna < modelo.colunas - 1) {
+                        val espacador = Cell()
+                        espacador.setWidth(espacoPontos)
+                        espacador.setHeight(mmParaPontos(modelo.alturaMM).toFloat())
+                        espacador.setBorder(null)
+                        espacador.setPadding(0f)
+                        tabela.addCell(espacador)
+                    }
                 }
             }
 
@@ -94,7 +110,9 @@ class PDFGenerator {
         val celula = Cell()
         celula.setWidth(mmParaPontos(modelo.larguraMM).toFloat())
         celula.setHeight(mmParaPontos(modelo.alturaMM).toFloat())
-        celula.setPadding(mmParaPontos(template.paddingInterno.toDouble()).toFloat())
+        celula.setPadding(0f)
+
+//        celula.setBorder(SolidBorder(0.1f))
         celula.setBorder(null)
         celula.setVerticalAlignment(VerticalAlignment.TOP)
 
@@ -102,7 +120,7 @@ class PDFGenerator {
         paragrafo.setFontSize(template.tamanhoFonte)
         paragrafo.setTextAlignment(TextAlignment.LEFT)
         paragrafo.setMultipliedLeading(template.entrelinhas)
-        paragrafo.setMargin(0.95f)
+        paragrafo.setMargin(mmParaPontos(template.paddingInterno.toDouble()).toFloat())
 
         celula.add(paragrafo)
 
@@ -113,26 +131,28 @@ class PDFGenerator {
         val celula = Cell()
         celula.setWidth(mmParaPontos(modelo.larguraMM).toFloat())
         celula.setHeight(mmParaPontos(modelo.alturaMM).toFloat())
-        celula.setPadding(mmParaPontos(1.5).toFloat())
+        celula.setPadding(0f)
+        celula.setMargin(0f)
         celula.setBorder(null)
         celula.setVerticalAlignment(VerticalAlignment.TOP)
 
         val paragrafo = Paragraph(registro.formatarParaEtiqueta())
         paragrafo.setFontSize(7.5f)
         paragrafo.setTextAlignment(TextAlignment.LEFT)
-        paragrafo.setMargin(0.95f)
+        paragrafo.setMargin(mmParaPontos(1.5).toFloat())
 
         celula.add(paragrafo)
 
         return celula
     }
 
-    private fun criarCelulaVazia(modelo: ModeloEtiqueta): Cell {
-        val celula = Cell()
-        celula.setWidth(mmParaPontos(modelo.larguraMM).toFloat())
-        celula.setHeight(mmParaPontos(modelo.alturaMM).toFloat())
-        celula.setBorder(null)
-        return celula
+    private fun criarCelulaVazia(modelo: ModeloEtiqueta, espacoPontos: Float): Cell {
+        val espacador = Cell()
+        espacador.setWidth(espacoPontos)
+        espacador.setHeight(mmParaPontos(modelo.alturaMM).toFloat())
+        espacador.setBorder(null)
+        espacador.setPadding(0f)
+        return espacador
     }
 
     private fun mmParaPontos(mm: Double): Double = mm * 2.834645669

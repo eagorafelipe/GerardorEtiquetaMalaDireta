@@ -11,7 +11,7 @@ data class EtiquetaTemplate(
     val campos: List<CampoTemplate>,
     val tamanhoFonte: Float = 7.5f,
     val entrelinhas: Float = 1.2f,
-    val paddingInterno: Float = 1.5f
+    val paddingInterno: Float = 0.95f
 ) {
     override fun toString(): String = nome
 
@@ -21,7 +21,7 @@ data class EtiquetaTemplate(
             nome = "Padrão - Completo",
             descricao = "Exibe todos os campos: síndico, condomínio, endereço, bairro, cidade e CEP",
             campos = listOf(
-                CampoTemplate(TipoCampo.SINDICO, "Síndico(a): ", 40, true),
+                CampoTemplate(TipoCampo.SINDICO, "", 45, true),
                 CampoTemplate(TipoCampo.CONDOMINIO, "", 45, true),
                 CampoTemplate(TipoCampo.ENDERECO, "", 45, true),
                 CampoTemplate(TipoCampo.BAIRRO, "", 30, true),
@@ -29,58 +29,7 @@ data class EtiquetaTemplate(
             )
         )
 
-        val COMPACTO = EtiquetaTemplate(
-            id = "compacto",
-            nome = "Compacto - Sem Síndico",
-            descricao = "Layout compacto sem nome do síndico",
-            campos = listOf(
-                CampoTemplate(TipoCampo.CONDOMINIO, "", 45, true),
-                CampoTemplate(TipoCampo.ENDERECO, "", 45, true),
-                CampoTemplate(TipoCampo.BAIRRO, "", 30, true),
-                CampoTemplate(TipoCampo.CIDADE_CEP, "", 50, true)
-            ),
-            tamanhoFonte = 8f
-        )
-
-        val APENAS_ENDERECO = EtiquetaTemplate(
-            id = "endereco",
-            nome = "Apenas Endereço",
-            descricao = "Exibe somente informações de endereço",
-            campos = listOf(
-                CampoTemplate(TipoCampo.CONDOMINIO, "", 45, true),
-                CampoTemplate(TipoCampo.ENDERECO, "", 45, true),
-                CampoTemplate(TipoCampo.CIDADE_CEP, "", 50, true)
-            ),
-            tamanhoFonte = 8.5f
-        )
-
-        val DESTAQUE_SINDICO = EtiquetaTemplate(
-            id = "destaque_sindico",
-            nome = "Destaque Síndico",
-            descricao = "Síndico em destaque, ideal para correspondências pessoais",
-            campos = listOf(
-                CampoTemplate(TipoCampo.SINDICO, "A/C Síndico(a): ", 40, true),
-                CampoTemplate(TipoCampo.CONDOMINIO, "", 45, true),
-                CampoTemplate(TipoCampo.ENDERECO, "", 45, true),
-                CampoTemplate(TipoCampo.CIDADE_CEP, "", 50, true)
-            ),
-            tamanhoFonte = 7f
-        )
-
-        val DESTAQUE_CONDOMINIO = EtiquetaTemplate(
-            id = "destaque_condominio",
-            nome = "Destaque Condomínio",
-            descricao = "Condomínio em destaque, ideal para correspondências institucionais",
-            campos = listOf(
-                CampoTemplate(TipoCampo.CONDOMINIO, "", 45, true),
-                CampoTemplate(TipoCampo.ENDERECO, "", 45, true),
-                CampoTemplate(TipoCampo.BAIRRO, "", 30, true),
-                CampoTemplate(TipoCampo.CIDADE_CEP, "", 50, true),
-                CampoTemplate(TipoCampo.SINDICO, "Síndico(a): ", 40, true),
-            )
-        )
-
-        val TEMPLATES_PADRAO = listOf(DEFAULT, COMPACTO, APENAS_ENDERECO, DESTAQUE_SINDICO, DESTAQUE_CONDOMINIO)
+        val TEMPLATES_PADRAO = listOf(DEFAULT)
     }
 }
 

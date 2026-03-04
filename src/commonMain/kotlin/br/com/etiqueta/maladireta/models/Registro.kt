@@ -12,7 +12,7 @@ data class Registro(
         val linhas = mutableListOf<String>()
 
         if (nomeSindico.isNotBlank()) {
-            linhas.add("Síndico(a): ${truncar(nomeSindico, 40)}")
+            linhas.add(truncar(nomeSindico, 40))
         }
 
         if (nomeCondominio.isNotBlank()) {
