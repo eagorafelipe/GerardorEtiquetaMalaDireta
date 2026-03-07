@@ -8,6 +8,7 @@ import com.itextpdf.kernel.geom.PageSize
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfWriter
 import com.itextpdf.layout.Document
+import com.itextpdf.layout.borders.SolidBorder
 import com.itextpdf.layout.element.Cell
 import com.itextpdf.layout.element.Paragraph
 import com.itextpdf.layout.element.Table
@@ -42,7 +43,7 @@ class PDFGenerator {
     ) {
         val writer = PdfWriter(arquivoSaida)
         val pdfDoc = PdfDocument(writer)
-        val document = Document(pdfDoc, PageSize.A4)
+        val document = Document(pdfDoc, modelo.tamanhoPapel)
 
         // Configurar margens do documento
         document.setMargins(
@@ -65,7 +66,7 @@ class PDFGenerator {
                 mmParaPontos(modelo.larguraMM).toFloat()
             }
             val tabela = Table(largurasColunas)
-            tabela.setHorizontalAlignment(HorizontalAlignment.CENTER)
+            tabela.setHorizontalAlignment(HorizontalAlignment.LEFT)
 
             // Preencher tabela
             for (linha in 0 until modelo.linhas) {
@@ -94,15 +95,16 @@ class PDFGenerator {
         val celula = Cell()
         celula.setWidth(mmParaPontos(modelo.larguraMM).toFloat())
         celula.setHeight(mmParaPontos(modelo.alturaMM).toFloat())
-        celula.setPadding(mmParaPontos(template.paddingInterno.toDouble()).toFloat())
+        celula.setPadding(0.0f)
         celula.setBorder(null)
+//        celula.setBorder(SolidBorder(0.5f))
         celula.setVerticalAlignment(VerticalAlignment.TOP)
 
         val paragrafo = Paragraph(registro.formatarComTemplate(template))
         paragrafo.setFontSize(template.tamanhoFonte)
         paragrafo.setTextAlignment(TextAlignment.LEFT)
         paragrafo.setMultipliedLeading(template.entrelinhas)
-        paragrafo.setMargin(0.95f)
+        paragrafo.setMargin(mmParaPontos(template.paddingInterno.toDouble()).toFloat())
 
         celula.add(paragrafo)
 
